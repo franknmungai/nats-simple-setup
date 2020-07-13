@@ -1,4 +1,5 @@
 import nats from 'node-nats-streaming';
+import { TicketCreatedPublisher } from './events/ticket-created-publisher';
 
 // Connect to a nats-server and return the client
 const stan = nats.connect('ticketing', 'abc', {
@@ -8,14 +9,20 @@ const stan = nats.connect('ticketing', 'abc', {
 stan.on('connect', () => {
 	console.log('Publisher connected to NATS');
 
-	// All data sent through NATS streaming must be in JSON/strings
-	const data = JSON.stringify({
+	const publisher = new TicketCreatedPublisher(stan);
+
+	// const data = JSON.stringify({
+	// 	id: '123',
+	// 	name: 'concert',
+	// 	price: 20,
+	// });
+	// stan.publish('ticket:created', data, () => {
+	// 	console.log('Event published');
+	// });
+
+	publisher.publish({
 		id: '123',
-		name: 'concert',
+		title: 'Concert',
 		price: 20,
-	});
-	stan.publish('ticket:created', data, () => {
-		// An acknowledgement callback called after the event/channel is received
-		console.log('Event published');
 	});
 });
