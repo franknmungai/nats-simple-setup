@@ -15,9 +15,16 @@ export abstract class Publisher<T extends Event> {
 	}
 
 	// All data sent through NATS streaming must be in JSON/strings
-	publish(data: T['data']) {
-		this.client.publish(this.subject, JSON.stringify(data), () => {
-			console.log('Published to ' + this.subject);
+	publish(data: T['data']): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.client.publish(this.subject, JSON.stringify(data), (err) => {
+				//we receive an error in our ack cb as the first argument
+				if (err) {
+					return reject();
+				}
+				resolve();
+				console.log('Published to ' + this.subject);
+			});
 		});
 	}
 }
