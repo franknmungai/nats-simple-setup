@@ -10,33 +10,11 @@ const stan = nats.connect('ticketing', clientId, {
 stan.on('connect', () => {
 	console.log('Listener connected to NATS');
 
+	new TicketCreatedListener(stan).listen();
+
 	stan.on('close', () => {
 		console.log('NATS listener client connection closed');
 		process.exit();
-	});
-
-	const options = stan
-		.subscriptionOptions()
-		.setManualAckMode(true) //Configures the subscription to require manual acknowledgement
-		.setDeliverAllAvailable() //send all available messages
-		.setDurableName('listener-service'); //make sure we receive only events/messages we did not acknowedge
-
-	// Subscribes to a given subject/channel, and join a queue group to ensure only one running instance of this app receives the event
-	const subcription = stan.subscribe(
-		'ticket:created',
-		'orders-service-queue-group',
-		options
-	);
-
-	// Once we get a message into our channel
-	subcription.on('message', (msg: Message) => {
-		// Returns the data associated with the message payload.
-		const data = msg.getData();
-
-		if (typeof data === 'string') {
-			console.log(`Received event #${msg.getSequence()} ${JSON.parse(data)}`);
-			msg.ack(); //manually acknowedge receiving the event
-		}
 	});
 });
 
@@ -67,7 +45,7 @@ abstract class Listener {
 			.setDurableName(this.queueGroupName); //make sure we receive only events/messages we did not acknowedge by marking events with this name
 	}
 
-	// Create a subscription
+	// Create a subscription and listen for events
 	listen() {
 		const subscription = this.client.subscribe(
 			this.subject,
@@ -81,6 +59,7 @@ abstract class Listener {
 			);
 
 			const parsedMessage = this.parseMessage(msg);
+			// Pass event data to child class
 			this.onMessage(parsedMessage, msg);
 		});
 	}
@@ -99,7 +78,7 @@ class TicketCreatedListener extends Listener {
 	queueGroupName = 'payments-service'; //name of our service
 
 	onMessage(data: any, msg: Message) {
-		console.log('Event data', data);
+		console.log('Event data', data); //Business logic 🚌
 		msg.ack(); //acknowledge event
 	}
 }
